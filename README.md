@@ -20,14 +20,14 @@ plugin.
 
     mrswatson --input mysong.wav --output out.wav --plugin myplugin
 
-This will run `mysong.wav` through the `myplugin` VST, placing the processed
+This will run `mysong.wav` through the `myplugin` VST plugin, placing the processed
 output in `out.wav`, as well as logging some output to the console:
 
-    - 00000000 000000 MrsWatson version 0.9.7 initialized, build 20150112
+    - 00000000 000000 MrsWatson version 0.9.8 initialized, build 20260122
     - 00000000 000000 Setting 2 channels
     - 00000000 000000 Setting sample rate to 44100Hz
-    - 00000000 000000 Plugin 'myplugin.vst' is of type VST2.x
-    - 00000000 000000 Opening VST2.x plugin 'myplugin.vst'
+    - 00000000 000000 Plugin 'myplugin' is of type VST3
+    - 00000000 000000 Opening VST3 plugin 'myplugin'
     - 00000000 000001 Starting processing input source
     - 00010752 000002 Total processing time 1ms, approximate breakdown:
     - 00010752 000002   MrsWatson Initialization: 1ms (69.4%)
@@ -70,6 +70,16 @@ Currently, MrsWatson loads plugins by their short name by searching in the
 standard installation locations for your platform, as well as the current
 working directory and by absolute path. Use the `--list-plugins` option to see
 the order of locations searched and the plugins found there.
+
+**VST3 Support**: MrsWatson now supports VST3 plugins (`.vst3` on macOS/Linux).
+VST3 plugins are searched in standard locations:
+- macOS: `/Library/Audio/Plug-Ins/VST3/` and `~/Library/Audio/Plug-Ins/VST3/`
+- Linux: `/usr/lib/vst3/` and `~/.vst3/`
+- Windows: `C:\Program Files\Common Files\VST3\` and `C:\Program Files (x86)\Common Files\VST3\`
+
+**VST2.x Support**: VST2.x support has been deprecated but can still be enabled
+by building with `-DWITH_VST2X=ON`. Note that VST2.x SDK is no longer
+officially available from Steinberg.
 
 MrsWatson supports setting plugin parameters with the `--parameter` switch.
 However, if you would like to set many parameters on a plugin, it may be more
@@ -122,6 +132,13 @@ Building
 Instructions for building MrsWatson can be found in the file
 [BUILDING.md][mw-building].
 
+**VST3 SDK Setup**: To build with VST3 support, you need the VST3 SDK from
+[Steinberg's GitHub repository](https://github.com/steinbergmedia/vst3sdk).
+See [VST3_SDK_SETUP.md](VST3_SDK_SETUP.md) for detailed setup instructions.
+
+**macOS Compatibility**: This fork has been updated for modern macOS (10.13+).
+See [COMPATIBILITY.md](COMPATIBILITY.md) for details on compatibility changes.
+
 
 Donate
 ------
@@ -155,8 +172,11 @@ MrsWatson is made available under the BSD license. For more details, see the
 following third-party libraries, which are licensed under the respective
 agreements:
 
+* [VST3 SDK][vst3-sdk]: Licensed under MIT license. Available from
+  [Steinberg's GitHub repository](https://github.com/steinbergmedia/vst3sdk).
 * [VST][vst-sdk]: Licensed under Steinberg's VST SDK license agreement, version
-  2.4. For more information, see Steinberg's developer portal.
+  2.4. For more information, see Steinberg's developer portal. (Deprecated,
+  optional build flag)
 * [libaudiofile][libaudiofile]: Written by Michael Pruett, licensed under GNU
   Library General Public License.
 
@@ -168,6 +188,7 @@ agreements:
 [mw-issues]: https://github.com/teragonaudio/MrsWatson/issues
 [donate-eff]: https://supporters.eff.org/donate
 [donate-wiki]: http://wikimediafoundation.org/wiki/WMFJA085/en
+[vst3-sdk]: https://github.com/steinbergmedia/vst3sdk
 [vst-sdk]: http://www.steinberg.net/en/company/developer.html
 [libaudiofile]: http://audiofile.68k.org/
 [mw-building]: BUILDING.md
