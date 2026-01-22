@@ -29,20 +29,27 @@ these arguments must be prefixed with `-D` to CMake, eg `-DOPTION_NAME=ON`.
 * `VERBOSE`: Show extra build information (default: `OFF`)
 
 
-Mac OSX
--------
+macOS
+-----
 
-To build MrsWatson on Mac OS X, you will need to have Apple's Developer Tools
+To build MrsWatson on macOS, you will need to have Apple's Developer Tools
 installed. You can download Xcode either from Apple's developer website or from
 the Mac App Store. You also need to install the command line tools provided by
 Xcode, which are not installed by default. To do this, go to the Xcode
 preferences, then to the downloads tab, and in "Components" you find a button to
 install the command line tools.
 
-[Homebrew][homebrew] is also recommended for building MrsWatson on Mac OS X.
-from homebrew, you will need the CMake package, but possibly automake and
-autoconf as well. See the homebrew webpage for details on installation of
+Alternatively, you can install the command line tools directly by running:
+    xcode-select --install
+
+[Homebrew][homebrew] is also recommended for building MrsWatson on macOS.
+From Homebrew, you will need the CMake package, but possibly automake and
+autoconf as well. See the Homebrew webpage for details on installation of
 packages.
+
+**Note:** MrsWatson is configured to support macOS 10.13 (High Sierra) and later
+for maximum compatibility with modern systems while maintaining support for older
+hardware. The build uses modern C++ standard library (libc++) by default.
 
 If you want to use Xcode to develop MrsWatson you will need to generate a
 project file like so:

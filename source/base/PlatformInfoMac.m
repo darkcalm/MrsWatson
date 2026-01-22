@@ -34,7 +34,12 @@ extern "C" {
 
 void _getMacVersionString(CharString outString);
 void _getMacVersionString(CharString outString) {
-    NSString *osVersion = [[NSProcessInfo processInfo] operatingSystemVersionString];
+    // Use modern API: operatingSystemVersion instead of deprecated operatingSystemVersionString
+    NSOperatingSystemVersion version = [[NSProcessInfo processInfo] operatingSystemVersion];
+    NSString *osVersion = [NSString stringWithFormat:@"Version %ld.%ld.%ld",
+                           (long)version.majorVersion,
+                           (long)version.minorVersion,
+                           (long)version.patchVersion];
     const char *osVersionCString = [osVersion UTF8String];
     charStringAppendCString(outString, osVersionCString);
 }

@@ -32,7 +32,10 @@
 #include "plugin/PluginLimiter.h"
 #include "plugin/PluginPassthru.h"
 #include "plugin/PluginSilence.h"
+#include "plugin/PluginVst3.h"
+#ifdef WITH_VST2X
 #include "plugin/PluginVst2x.h"
+#endif
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -50,10 +53,18 @@ _guessPluginInterfaceType(const CharString pluginName,
 
   logDebug("Trying to find plugin '%s'", pluginName->data);
 
-  if (pluginVst2xExists(pluginName, pluginSearchRoot)) {
-    logInfo("Plugin '%s' is of type VST2.x", pluginName->data);
+  // Check VST3 first (preferred)
+  if (pluginVst3Exists(pluginName, pluginSearchRoot)) {
+    logInfo("Plugin '%s' is of type VST3", pluginName->data);
+    pluginType = PLUGIN_TYPE_VST_3;
+  }
+#ifdef WITH_VST2X
+  else if (pluginVst2xExists(pluginName, pluginSearchRoot)) {
+    logInfo("Plugin '%s' is of type VST2.x (deprecated)", pluginName->data);
     pluginType = PLUGIN_TYPE_VST_2X;
-  } else if (!strncmp(INTERNAL_PLUGIN_PREFIX, pluginName->data,
+  }
+#endif
+  else if (!strncmp(INTERNAL_PLUGIN_PREFIX, pluginName->data,
                       strlen(INTERNAL_PLUGIN_PREFIX))) {
     logInfo("Plugin '%s' is an internal plugin", pluginName->data);
     pluginType = PLUGIN_TYPE_INTERNAL;
@@ -78,7 +89,10 @@ static void _listAvailablePluginsInternal(void) {
 }
 
 void listAvailablePlugins(const CharString pluginRoot) {
+  listAvailablePluginsVst3(pluginRoot);
+#ifdef WITH_VST2X
   listAvailablePluginsVst2x(pluginRoot);
+#endif
   _listAvailablePluginsInternal();
 }
 
@@ -108,8 +122,13 @@ Plugin pluginFactory(const CharString pluginName, const CharString pluginRoot) {
   }
 
   switch (interfaceType) {
+  case PLUGIN_TYPE_VST_3:
+    return newPluginVst3(pluginName, pluginRoot);
+
+#ifdef WITH_VST2X
   case PLUGIN_TYPE_VST_2X:
     return newPluginVst2x(pluginName, pluginRoot);
+#endif
 
   case PLUGIN_TYPE_INTERNAL:
     if (_internalPluginNameMatches(pluginName, kInternalPluginGainName)) {

@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.2)
+cmake_minimum_required(VERSION 3.5)
 
 function(add_dummy_package_target wordsize)
   add_custom_target(build_package_${wordsize}

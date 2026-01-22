@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.0)
+cmake_minimum_required(VERSION 3.5)
 project(MrsWatsonMain)
 
 include(${mw_cmake_scripts_DIR}/ConfigureTarget.cmake)

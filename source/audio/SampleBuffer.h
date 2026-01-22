@@ -29,6 +29,10 @@
 
 #include "base/Types.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef struct {
   ChannelCount numChannels;
   SampleCount blocksize;
@@ -79,5 +83,9 @@ boolByte sampleBufferCopyAndMapChannels(SampleBuffer self,
  * @param sampleBuffer
  */
 void freeSampleBuffer(SampleBuffer self);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

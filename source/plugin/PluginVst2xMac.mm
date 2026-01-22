@@ -151,14 +151,13 @@ extern "C" {
         frame.origin.y = (mainScreenRect.size.height - rect->height) / 2;
         frame.size.width = rect->width;
         frame.size.height = rect->height;
-        /*
-        NSUInteger windowStyleMask = NSTitledWindowMask |
-                NSResizableWindowMask |
-                NSClosableWindowMask |
-                NSMiniaturizableWindowMask;
-        */
+        // Use modern NSWindowStyleMask constants instead of deprecated NSTitledWindowMask, etc.
+        NSUInteger windowStyleMask = NSWindowStyleMaskTitled |
+                NSWindowStyleMaskResizable |
+                NSWindowStyleMaskClosable |
+                NSWindowStyleMaskMiniaturizable;
         NSWindow *window  = [[[NSWindow alloc] initWithContentRect:frame
-                                                         styleMask:NSBackingStoreBuffered
+                                                         styleMask:windowStyleMask
                                                            backing:NSBackingStoreBuffered
                                                              defer:NO]
                              autorelease];

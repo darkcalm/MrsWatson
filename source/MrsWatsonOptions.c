@@ -210,7 +210,7 @@ from the extension. Run with --list-file-types to see a list of supported types.
 Use '-' to write to stdout..",
           HAS_SHORT_FORM, kProgramOptionTypeString,
           kProgramOptionArgumentTypeOptional));
-  programOptionsSetCString(options, OPTION_OUTPUT_SOURCE, "out.wav");
+          programOptionsSetCString(options, OPTION_OUTPUT_SOURCE, "output.wav");
 
   programOptionsAdd(
       options,

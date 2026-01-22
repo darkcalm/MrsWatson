@@ -28,8 +28,10 @@
 
 #include "base/File.h"
 #include "logging/EventLogger.h"
+#if WITH_VST2X
 #include "plugin/PluginPresetFxp.h"
 #include "plugin/PluginPresetInternalProgram.h"
+#endif
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -68,11 +70,13 @@ PluginPreset pluginPresetFactory(const CharString presetName) {
   PluginPresetType presetType = _pluginPresetGuessType(presetName);
 
   switch (presetType) {
+#if WITH_VST2X
   case PRESET_TYPE_FXP:
     return newPluginPresetFxp(presetName);
 
   case PRESET_TYPE_INTERNAL_PROGRAM:
     return newPluginPresetInternalProgram(presetName);
+#endif
 
   default:
     return NULL;

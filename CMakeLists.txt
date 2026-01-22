@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.0)
+cmake_minimum_required(VERSION 3.5)
 project(MrsWatson)
 
 #################
@@ -9,6 +9,7 @@ option(WITH_AUDIOFILE "Use libaudiofile for reading/writing audio files" ON)
 option(WITH_FLAC "Support for FLAC files (requires libaudiofile)" OFF)
 option(WITH_GUI "Support for showing VST GUI windows (experimental)" OFF)
 option(WITH_VST_SDK "Manually specify VST SDK zipfile" "")
+option(WITH_VST2X "Support for VST2.x plugins (deprecated)" OFF)
 option(VERBOSE "Show extra build information" OFF)
 option(VERSION "Set version number when building distribution package" OFF)
 
@@ -26,6 +27,10 @@ endif()
 
 if(WITH_GUI)
   add_definitions(-DWITH_GUI=1)
+endif()
+
+if(WITH_VST2X)
+  add_definitions(-DWITH_VST2X=1)
 endif()
 
 if(VERSION)
@@ -49,7 +54,7 @@ if(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
   set(mw_PLATFORM_NAME "Linux")
 elseif(APPLE)
   set(mw_PLATFORM "mac")
-  set(mw_PLATFORM_NAME "Mac OS X")
+  set(mw_PLATFORM_NAME "macOS")
 elseif(WIN32)
   set(mw_PLATFORM "windows")
   set(mw_PLATFORM_NAME "Windows")
@@ -178,13 +183,17 @@ elseif(UNIX)
 
   # Mac-specific compiler flags
   if(APPLE)
+    # Set minimum deployment target to macOS 10.13 (High Sierra) for maximum
+    # compatibility with modern systems while supporting older hardware
+    # macOS 10.13 was released in 2017 and is the minimum for many modern features
+    set(CMAKE_OSX_DEPLOYMENT_TARGET "10.13" CACHE STRING "Minimum macOS deployment version")
     set(mw_COMMON_FLAGS_LIST
       ${mw_COMMON_FLAGS_LIST}
       "-fpascal-strings"
       "-Wnewline-eof"
       "-Wshorten-64-to-32"
       "-fasm-blocks"
-      "-mmacosx-version-min=10.5"
+      "-mmacosx-version-min=10.13"
     )
 
     set(mw_LINKER_FLAGS_LIST
@@ -194,12 +203,8 @@ elseif(UNIX)
       "-framework Foundation"
     )
 
-    if(${CMAKE_GENERATOR} MATCHES "Xcode")
-      set(mw_LINKER_FLAGS_LIST
-        ${mw_LINKER_FLAGS_LIST}
-        "-stdlib=libstdc++"
-      )
-    endif()
+    # Note: libstdc++ is deprecated on macOS. Modern builds use libc++ by default.
+    # Removed the Xcode-specific libstdc++ flag for better compatibility.
 
     add_definitions("-DMACOSX=1")
     # Homebrew places installed libraries in /usr/local, but no major

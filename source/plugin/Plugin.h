@@ -31,12 +31,17 @@
 #include "base/CharString.h"
 #include "base/LinkedList.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 // All internal plugins should start with this string
 #define INTERNAL_PLUGIN_PREFIX "mrs_"
 
 typedef enum {
   PLUGIN_TYPE_INVALID,
-  PLUGIN_TYPE_VST_2X,
+  PLUGIN_TYPE_VST_2X,  // Deprecated - use VST3 instead
+  PLUGIN_TYPE_VST_3,
   PLUGIN_TYPE_INTERNAL,
   NUM_PLUGIN_INTERFACE_TYPES
 } PluginInterfaceType;
@@ -214,5 +219,9 @@ Plugin _newPlugin(PluginInterfaceType interfaceType, PluginType pluginType);
  * @param self
  */
 void freePlugin(Plugin self);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

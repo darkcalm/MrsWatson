@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.0)
+cmake_minimum_required(VERSION 3.5)
 project(MrsWatsonCore)
 
 include(${mw_cmake_scripts_DIR}/ConfigureTarget.cmake)
@@ -36,12 +36,8 @@ set(core_SOURCES
   plugin/PluginLimiter.c
   plugin/PluginPassthru.c
   plugin/PluginPreset.c
-  plugin/PluginPresetFxp.c
-  plugin/PluginPresetInternalProgram.c
   plugin/PluginSilence.c
-  plugin/PluginVst2x.cpp
-  plugin/PluginVst2xHostCallback.cpp
-  plugin/PluginVst2xId.c
+  plugin/PluginVst3.cpp
   time/AudioClock.c
   time/TaskTimer.c
 
@@ -80,12 +76,8 @@ set(core_HEADERS
   plugin/PluginLimiter.h
   plugin/PluginPassthru.h
   plugin/PluginPreset.h
-  plugin/PluginPresetFxp.h
-  plugin/PluginPresetInternalProgram.h
   plugin/PluginSilence.h
-  plugin/PluginVst2x.h
-  plugin/PluginVst2xHostCallback.h
-  plugin/PluginVst2xId.h
+  plugin/PluginVst3.h
   time/AudioClock.h
   time/TaskTimer.h
 
@@ -106,6 +98,19 @@ if(WITH_AUDIOFILE)
   include_directories(${CMAKE_SOURCE_DIR}/vendor/audiofile/libaudiofile)
 endif()
 
+if(WITH_VST2X)
+  set(core_SOURCES
+    ${core_SOURCES}
+    plugin/PluginPresetFxp.c
+    plugin/PluginPresetInternalProgram.c
+  )
+  set(core_HEADERS
+    ${core_HEADERS}
+    plugin/PluginPresetFxp.h
+    plugin/PluginPresetInternalProgram.h
+  )
+endif()
+
 # Platform-specific sources
 if(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
   set(core_PLATFORM_SOURCES
@@ -115,10 +120,16 @@ if(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
 elseif(APPLE)
   set(core_PLATFORM_SOURCES
     base/PlatformInfoMac.m
-    plugin/PluginVst2xMac.mm
-    plugin/PluginVst2xMacWindow.h
-    plugin/PluginVst2xMacWindow.m
+    plugin/PluginVst3Mac.mm
   )
+  if(WITH_VST2X)
+    set(core_PLATFORM_SOURCES
+      ${core_PLATFORM_SOURCES}
+      plugin/PluginVst2xMac.mm
+      plugin/PluginVst2xMacWindow.h
+      plugin/PluginVst2xMacWindow.m
+    )
+  endif()
 
 elseif(WIN32)
   set(core_PLATFORM_SOURCES
@@ -143,7 +154,29 @@ source_group(time ".*/time/.*")
 # Build Configuration #
 #######################
 
-include_directories(${vst_include_DIR})
+# VST SDK include directories (VST2.x is deprecated, but kept for compatibility)
+if(WITH_VST2X AND EXISTS ${vst_include_DIR})
+  include_directories(${vst_include_DIR})
+endif()
+
+# VST3 SDK include directories
+set(VST3_SDK_AVAILABLE FALSE)
+if(EXISTS ${vst3_include_DIR})
+  include_directories(${vst3_include_DIR})
+  include_directories(${vst3_public_sdk_DIR}/source)
+  include_directories(${vst3_public_sdk_DIR}/source/vst)
+  include_directories(${vst3_public_sdk_DIR}/source/vst/hosting)
+  add_definitions(-DWITH_VST3_SDK=1)
+  set(VST3_SDK_AVAILABLE TRUE)
+  # Disable C++14 compatibility warnings for VST3 SDK headers
+  if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang" OR CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+    add_compile_options(-Wno-pre-c++14-compat)
+  endif()
+  message(STATUS "VST3 SDK includes: ${vst3_include_DIR}")
+  message(STATUS "VST3 SDK public.sdk: ${vst3_public_sdk_DIR}")
+else()
+  message(STATUS "VST3 SDK not found - basic plugin loading will work, but audio processing requires SDK")
+endif()
 
 if(APPLE)
   set_source_files_properties(${core_PLATFORM_SOURCES}
@@ -163,6 +196,24 @@ function(add_core_target wordsize)
     ${core_HEADERS}
   )
   configure_target(mrswatsoncore${wordsize} ${wordsize})
+  # VST3 SDK requires C++14 or later (base library uses C++17, but interfaces work with C++14)
+  if(VST3_SDK_AVAILABLE)
+    set_target_properties(mrswatsoncore${wordsize} PROPERTIES
+      CXX_STANDARD 14
+      CXX_STANDARD_REQUIRED ON
+    )
+    # Disable C++14 compatibility warnings for VST3 SDK headers
+    # This must be done after configure_target to ensure flags are applied
+    if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang" OR CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+      target_compile_options(mrswatsoncore${wordsize} PRIVATE -Wno-pre-c++14-compat)
+    endif()
+    
+    # Link VST3 SDK base library
+    if(vst3_base_lib AND TARGET ${vst3_base_lib})
+      target_link_libraries(mrswatsoncore${wordsize} PRIVATE ${vst3_base_lib})
+      message(STATUS "Linking VST3 SDK base library (${vst3_base_lib}) to mrswatsoncore${wordsize}")
+    endif()
+  endif()
 endfunction()
 
 if(mw_BUILD_32)

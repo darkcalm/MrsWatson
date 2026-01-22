@@ -82,7 +82,7 @@ unsigned long buildInfoGetDatestamp(void) {
   result += _getMonthNumber(buffer->data) * 100;
 
   charStringClear(buffer);
-  strncpy(buffer->data, __DATE__ + 4, 2);
+  strncpy(buffer->data, &__DATE__[4], 2);
   result += strtol(buffer->data, NULL, 10);
 
   freeCharString(buffer);

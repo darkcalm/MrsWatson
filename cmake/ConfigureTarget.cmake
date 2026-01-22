@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.0)
+cmake_minimum_required(VERSION 3.5)
 
 # Configure a target to set the correct properties for 32/64-bit builds
 function(configure_target target wordsize)
@@ -32,4 +32,12 @@ function(configure_target target wordsize)
   endif()
 
   target_compile_definitions(${target} PUBLIC PLATFORM_BITS=${wordsize})
+  
+  # Set C++14 standard for VST3 support (if needed)
+  if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang" OR CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+    set_target_properties(${target} PROPERTIES
+      CXX_STANDARD 14
+      CXX_STANDARD_REQUIRED ON
+    )
+  endif()
 endfunction()

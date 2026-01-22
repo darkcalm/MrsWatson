@@ -7,3 +7,6 @@
 [submodule "vendor/flac"]
 	path = vendor/flac
 	url = https://github.com/teragonaudio/flac.git
+[submodule "vendor/vst3sdk"]
+	path = vendor/vst3sdk
+	url = https://github.com/steinbergmedia/vst3sdk.git

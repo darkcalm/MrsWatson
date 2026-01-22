@@ -32,6 +32,10 @@
 
 #include <stdlib.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 static const size_t kCharStringLengthDefault = 256;
 static const size_t kCharStringLengthShort = 32;
 static const size_t kCharStringLengthLong = 8192;
@@ -182,5 +186,9 @@ CharString charStringWrap(const CharString self, unsigned int indentSize);
  * @param self
  */
 void freeCharString(CharString self);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

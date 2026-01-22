@@ -27,6 +27,10 @@
 #ifndef MrsWatson_LinkedList_h
 #define MrsWatson_LinkedList_h
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef struct {
   void *item;
   void *nextItem;
@@ -97,5 +101,9 @@ void freeLinkedList(LinkedList self);
  * @param freeItem Free function to be called for each item
  */
 void freeLinkedListAndItems(LinkedList self, LinkedListFreeItemFunc freeItem);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

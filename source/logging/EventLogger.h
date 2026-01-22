@@ -33,6 +33,10 @@
 #include <stdio.h>
 #include <sys/types.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef enum {
   LOG_DEBUG,
   LOG_INFO,
@@ -215,5 +219,9 @@ void flushErrorLog(void);
  * Free all memory and associated resources from the global EventLogger instance
  */
 void freeEventLogger(void);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

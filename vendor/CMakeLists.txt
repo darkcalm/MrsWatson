@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.0)
+cmake_minimum_required(VERSION 3.5)
 project(MrsWatsonVendor)
 
 include(${mw_cmake_scripts_DIR}/ConfigureTarget.cmake)
@@ -203,6 +203,8 @@ if(WITH_AUDIOFILE)
         -Wno-sign-compare
         -Wno-switch-default
         -Wno-unused-const-variable
+        -Wno-deprecated-declarations
+        -Wno-deprecated-non-prototype
       )
     elseif(${CMAKE_CXX_COMPILER_ID} STREQUAL GNU)
       set(audiofile_IGNORE_FLAGS
@@ -211,6 +213,7 @@ if(WITH_AUDIOFILE)
         -Wno-shadow
         -Wno-sign-compare
         -Wno-switch-default
+        -Wno-deprecated-declarations
       )
     elseif(MSVC)
       set(audiofile_IGNORE_FLAGS
@@ -219,7 +222,8 @@ if(WITH_AUDIOFILE)
     endif()
 
     target_compile_options(audiofile${wordsize} PUBLIC
-      ${audiofile_IGNORE_FLAGS}
+      $<$<COMPILE_LANGUAGE:C>:${audiofile_IGNORE_FLAGS}>
+      $<$<COMPILE_LANGUAGE:CXX>:${audiofile_IGNORE_FLAGS}>
     )
     configure_target(audiofile${wordsize} ${wordsize})
   endfunction()
@@ -375,27 +379,125 @@ endif()
 # in this project. However, we can download the zipfile from the web and extract
 # it to the build products directory.
 
-set(vst_web_ROOT "http://www.steinberg.net/sdk_downloads")
-set(vst_web_FILE "vstsdk366_27_06_2016_build_61.zip")
-set(vst_sdk_URL "${vst_web_ROOT}/${vst_web_FILE}")
-set(vst_sdk_ZIP "${CMAKE_BINARY_DIR}/vstsdk.zip")
-set(vst_sdk_ROOT "${CMAKE_BINARY_DIR}/VST3 SDK")
+# VST3 SDK configuration
+set(vst3_web_ROOT "https://download.steinberg.net/sdk_downloads")
+set(vst3_web_FILE "VST_SDK_3.7.9_build-20231020.zip")
+set(vst3_sdk_URL "${vst3_web_ROOT}/${vst3_web_FILE}")
+set(vst3_sdk_ZIP "${CMAKE_BINARY_DIR}/vst3sdk.zip")
+set(vst3_sdk_ROOT "${CMAKE_BINARY_DIR}/VST3_SDK")
 
-if(NOT EXISTS ${vst_sdk_ROOT})
-  if(WITH_VST_SDK)
-    message(STATUS "Using VST SDK from ${WITH_VST_SDK}")
-    file(COPY "${WITH_VST_SDK}" DESTINATION "${CMAKE_BINARY_DIR}")
-  else()
-    message(STATUS "Downloading VST SDK")
-    file(DOWNLOAD ${vst_sdk_URL} "${vst_sdk_ZIP}")
+# VST2.x SDK (deprecated, only if WITH_VST2X is enabled)
+if(WITH_VST2X)
+  set(vst_web_ROOT "http://www.steinberg.net/sdk_downloads")
+  set(vst_web_FILE "vstsdk366_27_06_2016_build_61.zip")
+  set(vst_sdk_URL "${vst_web_ROOT}/${vst_web_FILE}")
+  set(vst_sdk_ZIP "${CMAKE_BINARY_DIR}/vstsdk.zip")
+  set(vst_sdk_ROOT "${CMAKE_BINARY_DIR}/VST3 SDK")
+
+  if(NOT EXISTS ${vst_sdk_ROOT})
+    if(WITH_VST_SDK)
+      message(STATUS "Using VST SDK from ${WITH_VST_SDK}")
+      file(COPY "${WITH_VST_SDK}" DESTINATION "${CMAKE_BINARY_DIR}")
+    else()
+      message(STATUS "Downloading VST2.x SDK")
+      file(DOWNLOAD ${vst_sdk_URL} "${vst_sdk_ZIP}")
+    endif()
+
+    message(STATUS "Extracting VST2.x SDK")
+    execute_process(COMMAND
+      ${CMAKE_COMMAND} -E tar "xf" ${vst_sdk_ZIP}
+      WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+      INPUT_FILE "${vst_sdk_ZIP}"
+    )
   endif()
 
-  message(STATUS "Extracting VST SDK")
-  execute_process(COMMAND
-    ${CMAKE_COMMAND} -E tar "xf" ${vst_sdk_ZIP}
-    WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
-    INPUT_FILE "${vst_sdk_ZIP}"
-  )
+  set(vst_include_DIR "${vst_sdk_ROOT}/pluginterfaces/vst2.x" PARENT_SCOPE)
 endif()
 
-set(vst_include_DIR "${vst_sdk_ROOT}/pluginterfaces/vst2.x" PARENT_SCOPE)
+# VST3 SDK setup
+# VST3 SDK is available from GitHub: https://github.com/steinbergmedia/vst3sdk
+# It uses git submodules, so cloning requires --recursive flag
+set(vst3_github_URL "https://github.com/steinbergmedia/vst3sdk.git")
+set(vst3_sdk_git_dir "${CMAKE_BINARY_DIR}/vst3sdk")
+
+# Initialize vst3_sdk_ROOT variable
+set(vst3_sdk_ROOT "")
+
+# Check for VST3 SDK in various locations
+if(WITH_VST_SDK)
+  message(STATUS "Using VST3 SDK from ${WITH_VST_SDK}")
+  # If a directory is provided, use it directly
+  if(IS_DIRECTORY "${WITH_VST_SDK}")
+    set(vst3_sdk_ROOT "${WITH_VST_SDK}")
+  else()
+    # If a zipfile is provided, extract it
+    file(COPY "${WITH_VST_SDK}" DESTINATION "${CMAKE_BINARY_DIR}")
+    get_filename_component(vst3_zip_name "${WITH_VST_SDK}" NAME)
+    set(vst3_sdk_ZIP "${CMAKE_BINARY_DIR}/${vst3_zip_name}")
+    if(EXISTS "${vst3_sdk_ZIP}")
+      message(STATUS "Extracting VST3 SDK")
+      execute_process(COMMAND
+        ${CMAKE_COMMAND} -E tar "xf" ${vst3_sdk_ZIP}
+        WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+        INPUT_FILE "${vst3_sdk_ZIP}"
+      )
+      # Try to find extracted SDK
+      file(GLOB extracted_sdk "${CMAKE_BINARY_DIR}/VST3_SDK" "${CMAKE_BINARY_DIR}/vst3sdk")
+      if(extracted_sdk)
+        list(GET extracted_sdk 0 vst3_sdk_ROOT)
+      endif()
+    endif()
+  endif()
+elseif(EXISTS "${CMAKE_SOURCE_DIR}/vendor/vst3sdk/pluginterfaces")
+  # Check if added as git submodule
+  set(vst3_sdk_ROOT "${CMAKE_SOURCE_DIR}/vendor/vst3sdk")
+  message(STATUS "Using VST3 SDK from git submodule: ${vst3_sdk_ROOT}")
+elseif(EXISTS "${vst3_sdk_git_dir}/pluginterfaces")
+  # Check if already cloned from GitHub in build directory
+  set(vst3_sdk_ROOT "${vst3_sdk_git_dir}")
+  message(STATUS "Using VST3 SDK from GitHub clone: ${vst3_sdk_ROOT}")
+elseif(EXISTS "${CMAKE_BINARY_DIR}/VST3_SDK/pluginterfaces")
+  # Check for VST3_SDK in build directory (legacy naming)
+  set(vst3_sdk_ROOT "${CMAKE_BINARY_DIR}/VST3_SDK")
+  message(STATUS "Using VST3 SDK from build directory: ${vst3_sdk_ROOT}")
+else()
+  message(STATUS "VST3 SDK not found. Options:")
+  message(STATUS "  1. Add as git submodule: git submodule add ${vst3_github_URL} vendor/vst3sdk")
+  message(STATUS "     Then: git submodule update --init --recursive vendor/vst3sdk")
+  message(STATUS "  2. Clone to build directory: git clone --recursive ${vst3_github_URL} ${vst3_sdk_git_dir}")
+  message(STATUS "  3. Set WITH_VST_SDK to point to VST3 SDK directory")
+  message(STATUS "")
+  message(STATUS "VST3 SDK is available under MIT license from:")
+  message(STATUS "  ${vst3_github_URL}")
+endif()
+
+# Set parent scope variable
+if(vst3_sdk_ROOT)
+  set(vst3_sdk_ROOT "${vst3_sdk_ROOT}" PARENT_SCOPE)
+endif()
+
+# Set VST3 SDK include directories and build base library
+# VST3 SDK headers use "pluginterfaces/..." in their includes, so we need the SDK root in the path
+if(EXISTS "${vst3_sdk_ROOT}/pluginterfaces")
+  set(vst3_include_DIR "${vst3_sdk_ROOT}" PARENT_SCOPE)
+  set(vst3_public_sdk_DIR "${vst3_sdk_ROOT}/public.sdk" PARENT_SCOPE)
+  
+  # Build VST3 SDK base library in separate subdirectory to avoid strict warnings
+  # The VST3 SDK itself doesn't use -Werror, so we build it separately
+  if(mw_BUILD_64)
+    # Add subdirectory for base library (built without -Werror)
+    add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/vst3base ${CMAKE_BINARY_DIR}/vendor/vst3base)
+    
+    # Set the base library target name for linking
+    set(vst3_base_lib "vst3base64" PARENT_SCOPE)
+    
+    message(STATUS "VST3 SDK found at: ${vst3_sdk_ROOT}")
+    message(STATUS "VST3 SDK base library (vst3base64) will be built and linked")
+  endif()
+else()
+  message(WARNING "VST3 SDK not found. VST3 plugin processing will not work.")
+  message(WARNING "Please download VST3 SDK and set WITH_VST_SDK to point to it, or place it in build directory as VST3_SDK")
+  set(vst3_include_DIR "" PARENT_SCOPE)
+  set(vst3_public_sdk_DIR "" PARENT_SCOPE)
+  set(vst3_base_lib "" PARENT_SCOPE)
+endif()
